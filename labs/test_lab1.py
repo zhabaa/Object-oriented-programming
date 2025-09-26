@@ -4,7 +4,7 @@ import math
 def demonstrate_functionality():
     print("Демонстрация Angle")
     
-    angle1 = Angle(math.pi/4)  # 45
+    angle1 = Angle(math.pi / 4)  # 45
     angle2 = Angle.form_degees(60)  # 60
     
     print(f"angle1 (45°): {angle1}, градусы: {angle1.degrees:.1f}°")
@@ -25,7 +25,7 @@ def demonstrate_functionality():
     print(f"range2: {range2}")
     print(f"Длина range1: {abs(range1).degrees:.1f}°")
     
-    test_angle = Angle(math.pi/3)  # 60
+    test_angle = Angle(math.pi / 3)  # 60
     print(f"Угол 60° в range1: {test_angle in range1}")
     print(f"range2 в range1: {range2 in range1}")
     
