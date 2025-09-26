@@ -2,6 +2,5 @@
 
 ![vibe](https://i.pinimg.com/1200x/92/92/99/929299542198c850581566be51e72ec1.jpg)
 
----
 
  - [x] Лабораторная работа 1 (Angle, AngleRange)
