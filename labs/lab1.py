@@ -8,7 +8,7 @@ class Angle:
 
     #region properties
     @classmethod
-    def form_degees(cls, deg: int | float) -> Self:
+    def from_degrees(cls, deg: int | float) -> Self:
         return cls(math.radians(deg))
 
     @property
@@ -186,7 +186,7 @@ class AngleRange:
         if isinstance(value, (int, float)):
             return Angle(value)
 
-        elif isinstance(value, type(self)):
+        elif isinstance(value, Angle): #type(self) -> typeError
             return value
 
         raise TypeError(f"Expected: Angle | int | float; got {type(value)}")
