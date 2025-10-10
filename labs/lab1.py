@@ -186,7 +186,7 @@ class AngleRange:
         if isinstance(value, (int, float)):
             return Angle(value)
 
-        elif isinstance(value, Angle): #type(self) -> typeError
+        elif isinstance(value, Angle): # type: ignore #type(self) -> typeError
             return value
 
         raise TypeError(f"Expected: Angle | int | float; got {type(value)}")
