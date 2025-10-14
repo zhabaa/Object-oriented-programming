@@ -70,7 +70,7 @@ class Angle:
         return False
 
     def __lt__(self, other: Self) -> bool:
-        if isinstance(other, Self):
+        if isinstance(other, type(self)):
             return self.rad < other.rad
 
         elif isinstance(other, int | float):
@@ -79,7 +79,7 @@ class Angle:
         return NotImplemented
 
     def __le__(self, other: Self) -> bool:
-        if isinstance(other, Self):
+        if isinstance(other, type(self)):
             return self.rad <= other.rad
 
         elif isinstance(other, int | float):
