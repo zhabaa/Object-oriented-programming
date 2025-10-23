@@ -111,5 +111,9 @@ class Printer:
             sys.stdout.write(self.color.value + line + ANSI.RESET.value + "\n")
 
 # Julia
-# with Printer(Color.GREEN, (1, 1), "♡", "font5.json") as printer:
-#     printer.print("I love you!")
+with Printer(Color.RED, (1, 1), "0", "fonts/font5.json") as printer:
+    printer.print("swaga")
+
+printer = Printer(Color.RED, (1, 1), "0", "fonts/font5.json")
+printer.print_static("nikita", (1, 1), Color.BLUE, 'O', "fonts/font5.json")
+printer.print_static("good boy", (1, 1), Color.GREEN, '+', "fonts/font5.json")
