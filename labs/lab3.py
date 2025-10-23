@@ -35,6 +35,7 @@ class B:
 2. Гибкость
 3. С тестами удобнее будет
 """
+
 import re
 import sys
 from abc import ABC, abstractmethod
@@ -54,6 +55,7 @@ class LogLevel(Enum):
 
 
 # region abstract classes
+
 class LogFilterProtocol(ABC):
     @abstractmethod
     def match(self, log_level: LogLevel, text: str) -> bool:
@@ -95,7 +97,7 @@ class ReLogFilter(LogFilterProtocol):
 class LevelFilter(LogFilterProtocol):
     def __init__(self, log_level: LogLevel) -> None:
         self.log_level = log_level
-        self.levels_order = {
+        self.levels_order: dict[LogLevel, int] = {
             LogLevel.DEBUG: -1,
             LogLevel.INFO: 0,
             LogLevel.WARNING: 1,
@@ -104,8 +106,14 @@ class LevelFilter(LogFilterProtocol):
         }
 
     def match(self, log_level: LogLevel, text: str) -> bool:
-        return self.levels_order.get(log_level) >= self.levels_order.get(self.log_level)
-
+        try:
+            log_level_other = self.levels_order[self.log_level]
+            log_level_self = self.levels_order[log_level]
+            
+            return log_level_other >= log_level_self
+        
+        except (KeyError, TypeError) as e:
+            raise ValueError(f"Cant get log level: {e}") from e # exception chaining
 
 # endregion
 
