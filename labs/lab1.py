@@ -7,6 +7,7 @@ class Angle:
         self.rad = rad
 
     #region properties
+
     @classmethod
     def from_degrees(cls, deg: int | float) -> Self:
         return cls(math.radians(deg))
@@ -149,6 +150,7 @@ class AngleRange:
         self._end_included = end_included
 
     # region properties
+
     @property
     def start(self) -> Angle:
         return self._start
@@ -180,6 +182,7 @@ class AngleRange:
     @end_included.setter
     def end_included(self, value: bool) -> None:
         self._end_included = value
+
     # endregion
 
     def _ensure_angle(self, value: Union[Angle, int, float]) -> Angle:
@@ -218,6 +221,7 @@ class AngleRange:
         return self._contains_angle(other._start) and self._contains_angle(other._end)
 
     # region dunder methods
+
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, AngleRange):
             return NotImplemented
