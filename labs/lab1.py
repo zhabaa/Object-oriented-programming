@@ -4,134 +4,138 @@ from typing import Self, Union
 
 class Angle:
     def __init__(self, rad: int | float) -> None:
-        self.rad = rad
+        if not isinstance(rad, (int, float)):
+            raise TypeError("Radians must be a number")
 
-    #region properties
+        if math.isnan(rad) or math.isinf(rad):
+            raise ValueError("Radians cannot be nan or inf")
+
+        self._rad = rad
 
     @classmethod
     def from_degrees(cls, deg: int | float) -> Self:
+        if not isinstance(deg, (int, float)):
+            raise TypeError("Degrees must be a number")
+
         return cls(math.radians(deg))
 
+    # region properties
+
     @property
-    def radians(self) -> int | float:
-        return self._normalize_rad(self.rad)
+    def radians(self) -> float:
+        return self._rad % (2 * math.pi)
 
     @radians.setter
     def radians(self, new_rad: int | float) -> None:
-        if not isinstance(new_rad, int | float): # type: ignore # new_rad: int | float => isinstance
+        if not isinstance(new_rad, (int, float)):
             raise TypeError("Radians must be a number")
 
         if math.isnan(new_rad) or math.isinf(new_rad):
             raise ValueError("Radians cannot be nan or inf")
 
-        self.rad = self._normalize_rad(new_rad)
+        self._rad = new_rad
 
     @property
-    def degrees(self) -> int | float:
-        return self._normalize_deg(math.degrees(self.rad))
+    def degrees(self) -> float:
+        return (math.degrees(self._rad)) % 360
 
     @degrees.setter
     def degrees(self, new_deg: int | float) -> None:
-        if not isinstance(new_deg, int | float): # type: ignore # new_deg: int | float => isinstance
+        if not isinstance(new_deg, (int, float)):
             raise TypeError("Degrees must be a number")
 
         if math.isnan(new_deg) or math.isinf(new_deg):
             raise ValueError("Degrees cannot be nan or inf")
 
-        self.rad = math.radians(self._normalize_deg(new_deg))
-        
+        self._rad = math.radians(new_deg)
+
     # endregion
-
-    @staticmethod
-    def _normalize_deg(degrees: int | float) -> int | float:
-        return degrees % 360
-
-    @staticmethod
-    def _normalize_rad(radians: int | float) -> int | float:
-        return radians % (2 * math.pi)
 
     # region dunder methods
 
     def __repr__(self) -> str:
-        return f"{type(self).__name__}(radians = {self.rad})"
-
-    def __int__(self) -> int:
-        return int(self.radians)
+        return f"{type(self).__name__}(radians={self._rad})"
 
     def __str__(self) -> str:
-        return f"{self.rad:.4f}"
+        return f"{self.degrees:.2f}°"
 
     def __float__(self) -> float:
-        return self.rad
+        return float(self._rad)
+
+    def __int__(self) -> int:
+        return int(self._rad)
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, type(self)):
-            return math.isclose(self.rad, other.rad)
+            return math.isclose(self._rad, other._rad)
 
-        return False
-
-    def __lt__(self, other: Self) -> bool:
-        if isinstance(other, type(self)):
-            return self.rad < other.rad
-
-        elif isinstance(other, int | float):
-            return self.rad < (other % (2 * math.pi))
+        if isinstance(other, (int, float)):
+            return math.isclose(self._rad, float(other))
 
         return NotImplemented
 
-    def __le__(self, other: Self) -> bool:
+    def __lt__(self, other: Union[int, float, Self]) -> bool:
         if isinstance(other, type(self)):
-            return self.rad <= other.rad
+            return self._rad < other._rad
 
-        elif isinstance(other, int | float):
-            return self.rad <= (other % (2 * math.pi))
+        if isinstance(other, (int, float)):
+            return self._rad < other
+
+        return NotImplemented
+
+    def __le__(self, other: Union[int, float, Self]) -> bool:
+        if isinstance(other, type(self)):
+            return self._rad <= other._rad
+
+        if isinstance(other, (int, float)):
+            return self._rad <= other
 
         return NotImplemented
 
     def __add__(self, other: Union[int, float, Self]) -> Self:
         if isinstance(other, type(self)):
-            return type(self)(self.rad + other.rad)
+            return type(self)(self._rad + other._rad)
 
-        elif isinstance(other, int | float):
-            return type(self)(self.rad + other)
-    
-        raise NotImplementedError
+        if isinstance(other, (int, float)):
+            return type(self)(self._rad + other)
 
-    def __radd__(self, other: int | float) -> Self:
+        return NotImplemented
+
+    def __radd__(self, other: Union[int, float]) -> Self:
         return self.__add__(other)
 
-    def __sub__(self, other: Self | int | float) -> Self:
+    def __sub__(self, other: int | float) -> Self:
         if isinstance(other, type(self)):
-            return type(self)(self.rad - other.rad)
+            return type(self)(self._rad - other._rad)
 
-        elif isinstance(other, int | float):
-            return type(self)(self.rad - other)
-
-        return NotImplemented
-
-    def __rsub__(self, other: int | float) -> Self:
-        if isinstance(other, int | float): # type: ignore # other: int | float => isinstance
-            return type(self)(other - self.rad)
+        if isinstance(other, (int, float)):
+            return type(self)(self._rad - other)
 
         return NotImplemented
 
-    def __mul__(self, value: int | float) -> Self:
-        if isinstance(value, int | float): # type: ignore # value: int | float => isinstance
-            return type(self)(self.rad * value)
+    def __rsub__(self, other: Union[int, float]) -> Self:
+        if isinstance(other, (int, float)):
+            return type(self)(other - self._rad)
 
         return NotImplemented
 
-    def __rmul__(self, value: int | float) -> Self:
+    def __mul__(self, value: Union[int, float]) -> Self:
+        if isinstance(value, (int, float)):
+            return type(self)(self._rad * value)
+
+        return NotImplemented
+
+    def __rmul__(self, value: Union[int, float]) -> Self:
         return self.__mul__(value)
 
-    def __truediv__(self, value: int | float) -> Self:
-        if not value:
-            raise ZeroDivisionError
+    def __truediv__(self, value: Union[int, float]) -> Self:
+        if not isinstance(value, (int, float)):
+            return NotImplemented
 
-        if isinstance(value, int | float): # type: ignore # value: int | float => isinstance
-            return type(self)(self.rad / value)
+        if value == 0:
+            raise ZeroDivisionError("Division by zero")
 
-        return NotImplemented
+        return type(self)(self._rad / value)
 
     # endregion
 
@@ -139,51 +143,50 @@ class Angle:
 class AngleRange:
     def __init__(
         self,
-        start: Union[Angle, int, float],
-        end: Union[Angle, int, float],
+        start: Union[int, float, Angle],
+        end: Union[int, float, Angle],
         start_included: bool = True,
         end_included: bool = True,
     ):
-        self._start = self._ensure_angle(start)
-        self._end = self._ensure_angle(end)
-        self._start_included = start_included
-        self._end_included = end_included
+        self._start: Angle = start if isinstance(start, Angle) else Angle(start)
+        self._end: Angle = end if isinstance(end, Angle) else Angle(end)
 
-    # region properties
+        self._start_included = bool(start_included)
+        self._end_included = bool(end_included)
 
-    @property
-    def start(self) -> Angle:
-        return self._start
+        if self._start._rad > self._end._rad:
+            self._start, self._end = self._end, self._start
+            self._start_included, self._end_included = (
+                self._end_included,
+                self._start_included,
+            )
 
-    @start.setter
-    def start(self, value: Union[Angle, int, float]) -> None:
-        self._start = self._ensure_angle(value)
+    @classmethod
+    def from_degrees(
+        cls,
+        start_deg: int | float,
+        end_deg: int | float,
+        start_included: bool = True,
+        end_included: bool = True,
+    ) -> Self:
+        if not isinstance(start_deg, (int, float)):
+            raise TypeError("Start degrees must be a number")
+        
+        if not isinstance(end_deg, (int, float)):
+            raise TypeError("End degrees must be a number")
 
-    @property
-    def end(self) -> Angle:
-        return self._end
+        if math.isnan(start_deg) or math.isinf(start_deg):
+            raise ValueError("Start degrees cannot be nan or inf")
+        
+        if math.isnan(end_deg) or math.isinf(end_deg):
+            raise ValueError("End degrees cannot be nan or inf")
 
-    @end.setter
-    def end(self, value: Union[Angle, int, float]) -> None:
-        self._end = self._ensure_angle(value)
+        start_angle = Angle.from_degrees(start_deg)
+        end_angle = Angle.from_degrees(end_deg)
+        
+        return cls(start_angle, end_angle, start_included, end_included)
 
-    @property
-    def start_included(self) -> bool:
-        return self._start_included
-
-    @start_included.setter
-    def start_included(self, value: bool) -> None:
-        self._start_included = value
-
-    @property
-    def end_included(self) -> bool:
-        return self._end_included
-
-    @end_included.setter
-    def end_included(self, value: bool) -> None:
-        self._end_included = value
-
-    # endregion
+    # region help functions
 
     def _ensure_angle(self, value: Union[Angle, int, float]) -> Angle:
         if isinstance(value, (int, float)):
@@ -201,18 +204,18 @@ class AngleRange:
                 other._contains_angle(self._end))
 
     def _adjacent(self, other: Self) -> bool:
-        return (math.isclose(self._end.rad, other._start.rad) or
-                math.isclose(other._end.rad, self._start.rad))
+        return (math.isclose(self._end._rad, other._start._rad) or
+                math.isclose(other._end._rad, self._start._rad))
 
     def _contains_angle(self, angle: Angle) -> bool:
-        rad = angle.rad
+        rad = angle._rad
         
-        in_range = self._start.rad <= rad <= self._end.rad
+        in_range = self._start._rad <= rad <= self._end._rad
         
-        if not self._start_included and math.isclose(rad, self._start.rad):
+        if not self._start_included and math.isclose(rad, self._start._rad):
             return False
 
-        if not self._end_included and math.isclose(rad, self._end.rad):
+        if not self._end_included and math.isclose(rad, self._end._rad):
             return False
         
         return in_range
@@ -220,16 +223,29 @@ class AngleRange:
     def _contains_range(self, other: Self) -> bool:
         return self._contains_angle(other._start) and self._contains_angle(other._end)
 
-    # region dunder methods
+    # endregion
 
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, AngleRange):
-            return NotImplemented
-        
-        return (math.isclose(self._start.rad, other._start.rad) and
-                math.isclose(self._end.rad, other._end.rad) and
-                self._start_included == other._start_included and
-                self._end_included == other._end_included)
+    # region properties
+
+    @property
+    def start(self) -> Angle:
+        return self._start
+
+    @property
+    def end(self) -> Angle:
+        return self._end
+
+    @property
+    def start_included(self) -> bool:
+        return self._start_included
+
+    @property
+    def end_included(self) -> bool:
+        return self._end_included
+
+    # endregion
+
+    # region dunder
 
     def __contains__(self, other: Union[Self, Angle, int, float]) -> bool:
         if isinstance(other, Angle):
@@ -243,65 +259,89 @@ class AngleRange:
 
         return False
 
-    def __add__(self, other: Self) -> list[Self]:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, type(self)):
             return NotImplemented
 
+        return (
+            math.isclose(self._start._rad, other._start._rad)
+            and math.isclose(self._end._rad, other._end._rad)
+            and self._start_included == other._start_included
+            and self._end_included == other._end_included
+        )
+
+    def __abs__(self) -> Angle:
+        return Angle((self.end.radians - self.start.radians) % (2 * math.pi))
+
+    def __repr__(self) -> str:
+        start_br = "[" if self._start_included else "("
+        end_br = "]" if self._end_included else ")"
+
+        return (
+            f"{type(self).__name__}("
+            f"{start_br}{self._start.radians:.4f}; {self._end.radians:.4f}{end_br})"
+        )
+
+    def __str__(self) -> str:
+        start_br = "[" if self._start_included else "("
+        end_br = "]" if self._end_included else ")"
+
+        return f"{start_br}{self._start.degrees:.2f}; {self._end.degrees:.2f}{end_br}"
+
+    def __add__(self, other: Self) -> list["AngleRange"]:
+        if not isinstance(other, AngleRange):
+            return NotImplemented
+
         if self._overlaps(other) or self._adjacent(other):
-            new_start = min(self._start, other._start, key=lambda x: x.rad)
-            new_end = max(self._end, other._end, key=lambda x: x.rad)
-            
+            new_start = min(self._start, other._start, key=lambda a: a._rad)
+            new_end = max(self._end, other._end, key=lambda a: a._rad)
+
             new_start_inc = (
-                self._start_included if new_start.rad == self._start.rad 
+                self._start_included
+                if new_start is self._start
                 else other._start_included
             )
 
             new_end_inc = (
-                self._end_included if new_end.rad == self._end.rad 
-                else other._end_included
+                self._end_included if new_end is self._end else other._end_included
             )
 
-            return [type(self)(new_start, new_end, new_start_inc, new_end_inc)]
+            return [AngleRange(new_start, new_end, new_start_inc, new_end_inc)]
 
-        else:
-            return sorted([self, other], key=lambda x: x._start.rad)
+        return sorted([self, other], key=lambda r: r._start._rad)
 
-    def __sub__(self, other: Self) -> list[Self]:
-        if not isinstance(other, type(self)):
+    def __sub__(self, other: Self) -> list["AngleRange"]:
+        if not isinstance(other, AngleRange):
             return NotImplemented
-
-        result: list[Self] = list()
 
         if not self._overlaps(other):
             return [self]
 
-        if self._start.rad < other._start.rad:
-            start_inc = self._start_included and not other._start_included
+        result: list["AngleRange"] = []
+
+        s1, e1 = self._start._rad, self._end._rad
+        s2, e2 = other._start._rad, other._end._rad
+
+        if s1 < s2:
             result.append(
-                type(self)(
-                    self._start, other._start, self._start_included, start_inc
+                AngleRange(
+                    self._start,
+                    other._start,
+                    self._start_included,
+                    not other._start_included,
                 )
             )
 
-        if other._end.rad < self._end.rad:
-            end_inc = self._end_included and not other._end_included
+        if e2 < e1:
             result.append(
-                type(self)(other._end, self._end, end_inc, self._end_included)
+                AngleRange(
+                    other._end,
+                    self._end,
+                    not other._end_included,
+                    self._end_included,
+                )
             )
 
         return result
-
-    def __str__(self) -> str:
-        start_bracket = "[" if self._start_included else "("
-        end_bracket = "]" if self._end_included else ")"
-        return f"{start_bracket}{self._start.rad:.2f}; {self._end.rad:.2f}{end_bracket}"
-
-    def __repr__(self) -> str:
-        start_bracket = "[" if self._start_included else "("
-        end_bracket = "]" if self._end_included else ")"
-        return f"AngleRange({start_bracket}{self._start.rad:.2f}; {self._end.rad:.2f}{end_bracket})"
-
-    def __abs__(self) -> Angle:
-        return Angle(self._end.rad - self._start.rad)
 
     # endregion
