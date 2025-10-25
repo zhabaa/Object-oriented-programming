@@ -88,7 +88,10 @@ class SimpleLogFilter(LogFilterProtocol):
 
 class ReLogFilter(LogFilterProtocol):
     def __init__(self, pattern: str) -> None:
-        self.pattern = re.compile(pattern)
+        try:
+            self.pattern = re.compile(pattern)
+        except re.error as e:
+            raise ValueError(f"Invalid regex pattern {pattern}: {e}") from e
 
     def match(self, log_level: LogLevel, text: str) -> bool:
         return bool(self.pattern.search(text))
@@ -107,13 +110,10 @@ class LevelFilter(LogFilterProtocol):
 
     def match(self, log_level: LogLevel, text: str) -> bool:
         try:
-            log_level_other = self.levels_order[self.log_level]
-            log_level_self = self.levels_order[log_level]
-            
-            return log_level_other >= log_level_self
-        
-        except (KeyError, TypeError) as e:
-            raise ValueError(f"Cant get log level: {e}") from e # exception chaining
+            return self.levels_order[log_level] >= self.levels_order[self.log_level]
+        except KeyError as e:
+            raise ValueError(f"Unknown log level: {e}")
+
 
 # endregion
 
@@ -129,11 +129,11 @@ class FileHandler(LogHandlerProtocol):
         self.filename = filename
 
     def handle(self, log_level: LogLevel, text: str) -> None:
-        with open(self.filename, "w", encoding="utf-8") as file:
+        with open(self.filename, "a", encoding="utf-8") as file:
             file.write(f"{text}\n")
 
 
-class SockerHandler(LogHandlerProtocol):
+class SocketHandler(LogHandlerProtocol):
     def __init__(self, host: str, port: int) -> None:
         self.host = host
         self.port = port
@@ -193,24 +193,28 @@ class Logger:
     def __init__(self, filters: Optional[list[LogFilterProtocol]] = None,
                  handlers: Optional[list[LogHandlerProtocol]] = None,
                  formatters: Optional[list[LogFormatterProtocol]] = None) -> None:
-        self.filters = filters if filters else []
-        self.handlers = handlers if handlers else []
-        self.formatters = formatters if formatters else []
+        self.filters = filters.copy() if filters else []
+        self.handlers = handlers.copy() if handlers else []
+        self.formatters = formatters.copy() if formatters else []
 
-    def log(self, log_level: LogLevel, text: str) -> str | None:
-        for _filter in self.filters:
-            if not _filter.match(log_level, text):
-                return f"[!] Filter {_filter.__class__.__name__} failed"
+    def log(self, log_level: LogLevel, text: str) -> None:
+        try:
+            text = str(text)
 
-        formatted_text = str()
+            for _filter in self.filters:
+                if not _filter.match(log_level, text):
+                    raise Exception(f"[!] Filter {_filter.__class__.__name__} failed")
 
-        for _formatter in self.formatters:
-            formatted_text = _formatter.format(log_level, formatted_text)
+            formatted_text = text
 
-        for _handler in self.handlers:
-            _handler.handle(log_level, formatted_text)
+            for _formatter in self.formatters:
+                formatted_text = _formatter.format(log_level, formatted_text)
 
-        return None
+            for _handler in self.handlers:
+                _handler.handle(log_level, formatted_text)
+
+        except Exception as ex:
+            raise ex
 
     def log_info(self, text: str) -> None:
         self.log(LogLevel.INFO, text)
