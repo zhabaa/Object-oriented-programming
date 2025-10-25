@@ -1,9 +1,6 @@
 import math
 from typing import Self, Union
 
-# TODO 3 lab exceptopn re str
-# TODO 1 lab __formatter__ чтобы вывод в __str__ красивый был
-
 
 class Angle:
     def __init__(self, rad: int | float) -> None:
