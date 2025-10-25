@@ -1,6 +1,9 @@
 import math
 from typing import Self, Union
 
+# TODO 3 lab exceptopn re str
+# TODO 1 lab __formatter__ чтобы вывод в __str__ красивый был
+
 
 class Angle:
     def __init__(self, rad: int | float) -> None:
@@ -57,7 +60,21 @@ class Angle:
         return f"{type(self).__name__}(radians={self._rad})"
 
     def __str__(self) -> str:
-        return f"{self.degrees:.2f}°"
+        return f"{self.degrees:.2f}"
+
+    def __format__(self, format_spec: str) -> str:
+        match format_spec:
+            case "rad":
+                return f"{self.radians:.3f}"
+
+            case "deg":
+                return f"{self.degrees:.3f}"
+
+            case "":
+                return self.__format__(format_spec="deg")
+
+            case _:
+                raise ValueError(f"Unknown format specifier: {format_spec}")
 
     def __float__(self) -> float:
         return float(self._rad)
@@ -92,6 +109,24 @@ class Angle:
 
         return NotImplemented
 
+    def __gt__(self, other: Union[int, float, Self]) -> bool:
+        if isinstance(other, type(self)):
+            return self._rad > other._rad
+
+        if isinstance(other, (int, float)):
+            return self._rad > other
+
+        return NotImplemented
+
+    def __ge__(self, other: Union[int, float, Self]) -> bool:
+        if isinstance(other, type(self)):
+            return self._rad >= other._rad
+
+        if isinstance(other, (int, float)):
+            return self._rad >= other
+
+        return NotImplemented
+
     def __add__(self, other: Union[int, float, Self]) -> Self:
         if isinstance(other, type(self)):
             return type(self)(self._rad + other._rad)
@@ -104,7 +139,7 @@ class Angle:
     def __radd__(self, other: Union[int, float]) -> Self:
         return self.__add__(other)
 
-    def __sub__(self, other: int | float) -> Self:
+    def __sub__(self, other: Union[int, float, Self]) -> Self:
         if isinstance(other, type(self)):
             return type(self)(self._rad - other._rad)
 
@@ -171,19 +206,19 @@ class AngleRange:
     ) -> Self:
         if not isinstance(start_deg, (int, float)):
             raise TypeError("Start degrees must be a number")
-        
+
         if not isinstance(end_deg, (int, float)):
             raise TypeError("End degrees must be a number")
 
         if math.isnan(start_deg) or math.isinf(start_deg):
             raise ValueError("Start degrees cannot be nan or inf")
-        
+
         if math.isnan(end_deg) or math.isinf(end_deg):
             raise ValueError("End degrees cannot be nan or inf")
 
         start_angle = Angle.from_degrees(start_deg)
         end_angle = Angle.from_degrees(end_deg)
-        
+
         return cls(start_angle, end_angle, start_included, end_included)
 
     # region help functions
@@ -192,32 +227,35 @@ class AngleRange:
         if isinstance(value, (int, float)):
             return Angle(value)
 
-        elif isinstance(value, Angle): # type: ignore #type(self) -> typeError
+        elif isinstance(value, Angle):  # type: ignore #type(self) -> typeError
             return value
 
         raise TypeError(f"Expected: Angle | int | float; got {type(value)}")
 
     def _overlaps(self, other: Self) -> bool:
-        return (self._contains_angle(other._start) or 
-                self._contains_angle(other._end) or
-                other._contains_angle(self._start) or
-                other._contains_angle(self._end))
+        return (
+            self._contains_angle(other._start)
+            or self._contains_angle(other._end)
+            or other._contains_angle(self._start)
+            or other._contains_angle(self._end)
+        )
 
     def _adjacent(self, other: Self) -> bool:
-        return (math.isclose(self._end._rad, other._start._rad) or
-                math.isclose(other._end._rad, self._start._rad))
+        return math.isclose(self._end._rad, other._start._rad) or math.isclose(
+            other._end._rad, self._start._rad
+        )
 
     def _contains_angle(self, angle: Angle) -> bool:
         rad = angle._rad
-        
+
         in_range = self._start._rad <= rad <= self._end._rad
-        
+
         if not self._start_included and math.isclose(rad, self._start._rad):
             return False
 
         if not self._end_included and math.isclose(rad, self._end._rad):
             return False
-        
+
         return in_range
 
     def _contains_range(self, other: Self) -> bool:
@@ -281,6 +319,23 @@ class AngleRange:
             f"{type(self).__name__}("
             f"{start_br}{self._start.radians:.4f}; {self._end.radians:.4f}{end_br})"
         )
+
+    def __format__(self, format_spec: str) -> str:
+        start_br = "[" if self._start_included else "("
+        end_br = "]" if self._end_included else ")"
+
+        match format_spec:
+            case "rad":
+                return f"{start_br}{self.start.radians};{self.end.radians}{end_br}"
+
+            case "deg":
+                return f"{start_br}{self.start.degrees};{self.end.degrees}{end_br}"
+
+            case "":
+                return self.__format__(format_spec="deg")
+
+            case _:
+                raise ValueError(f"Unknown format specifier: {format_spec}")
 
     def __str__(self) -> str:
         start_br = "[" if self._start_included else "("
