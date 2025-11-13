@@ -25,7 +25,9 @@ class Color(Enum):
 
 
 class Printer:
-    def __init__(self, color: Color, position: tuple[int, int], symbol: str, font_file: str) -> None:
+    def __init__(
+        self, color: Color, position: tuple[int, int], symbol: str, font_file: str
+    ) -> None:
         self.color: Color = color
         self.position: tuple[int, int] = position
         self.symbol: str = symbol
@@ -34,9 +36,12 @@ class Printer:
     @staticmethod
     def _load_font(font_file: str) -> dict[str, list[str]]:
         try:
-            if not os.path.exists(font_file): raise FileNotFoundError
-            if not os.path.isfile(font_file): raise ValueError
-            
+            if not os.path.exists(font_file):
+                raise FileNotFoundError
+
+            if not os.path.isfile(font_file):
+                raise ValueError
+
             if font_file.endswith(".json"):
                 with open(font_file, "r", encoding="utf-8") as f:
                     data: dict[str, list[str]] = json.load(f)
@@ -64,23 +69,23 @@ class Printer:
                 if current_char:
                     data[current_char] = buffer
 
-            else: 
+            else:
                 raise ValueError("this filetype is not implemented")
 
             return data
-            
+
         except Exception as e:
             raise Exception(f"Error while loading {font_file}:\n{e}")
-            
 
     @classmethod
-    def print_static(cls,
-                     text: str,
-                     position: tuple[int, int],
-                     color: Color,
-                     symbol: str,
-                     font_file: str) -> None:
-
+    def print_static(
+        cls,
+        text: str,
+        position: tuple[int, int],
+        color: Color,
+        symbol: str,
+        font_file: str,
+    ) -> None:
         font: dict[str, list[str]] = cls._load_font(font_file)
         x, y = position
 
@@ -100,10 +105,12 @@ class Printer:
         sys.stdout.write(ANSI.CLEAR.value)
         return self
 
-    def __exit__(self,
-                 exc_type: Optional[Type[BaseException]],
-                 exc_val: Optional[BaseException],
-                 exc_tb: Optional[TracebackType]) -> None:
+    def __exit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> None:
         sys.stdout.write(ANSI.RESET.value)
 
     def print(self, text: str) -> None:
@@ -118,11 +125,3 @@ class Printer:
                     line += self.font[ch][i].replace("#", self.symbol) + "  "
 
             sys.stdout.write(self.color.value + line + ANSI.RESET.value + "\n")
-
-
-with Printer(Color.RED, (1, 1), "0", "fonts/font5.json") as printer:
-    printer.print("swaga")
-
-printer = Printer(Color.RED, (1, 1), "0", "fonts/font5.json")
-printer.print_static("nikita", (10, 1), Color.BLUE, 'O', "fonts/font9.json")
-printer.print_static("good boy", (1, 1), Color.GREEN, '+', "fonts/font5.json")

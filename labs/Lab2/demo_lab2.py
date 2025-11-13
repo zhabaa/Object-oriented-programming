@@ -206,10 +206,13 @@ def demo_complex_examples():
         json.dump(extended_font, f)
 
     print("1. Многострочное сообщение:")
-    with Printer(Color.CYAN, (1, 1), "♥", "labs/fonts/font5.json") as p1:
+
+    with Printer(Color.CYAN, (1, 1), "♥", "labs/Lab-2/fonts/font5.json") as p1:
         p1.print("HAPPY")
-    with Printer(Color.YELLOW, (7, 1), "★", "labs/fonts/font5.json") as p2:
+
+    with Printer(Color.YELLOW, (7, 1), "★", "labs/Lab-2/fonts/font5.json") as p2:
         p2.print("BIRTHDAY!")
+
     print(" Многострочный текст создан\n")
 
     print("2. Чередование цветов:")
