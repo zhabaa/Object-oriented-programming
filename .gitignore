@@ -1,5 +1,10 @@
+**/.venv
+**/.idea
+**/.vscode
 **/__pycache__
-*/.venv
-*/.idea
 /.pytest_cache
 application.log
+users.json
+keyboard_output.txt
+keyboard_state.json
+
