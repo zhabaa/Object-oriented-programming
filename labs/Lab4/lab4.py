@@ -26,7 +26,6 @@ class Event:
         for handler in self._handlers:
             handler.handle(sender, args)
 
-
 @dataclass
 class PropertyChangedEventArgs:
     property_name: str
@@ -140,41 +139,3 @@ class Product(ObservableObject):
     @quantity.setter
     def quantity(self, value: int) -> None:
         self._quantity = self._set_property("quantity", self._quantity, value)
-
-
-# Демонстрация работы
-if __name__ == "__main__":
-    # Создаем обработчики
-    changed_handler = PropertyChangedHandler()
-    validator = PropertyChangingValidator()
-
-    # Создаем объекты
-    person = Person()
-    product = Product()
-
-    # Подписываемся на события
-    person.property_changed += changed_handler
-    person.property_changing += validator
-
-    product.property_changed += changed_handler
-    product.property_changing += validator
-
-    print("=== Тестирование класса Person ===")
-    person.name = "Иван"        # Корректное значение
-    person.age = 25             # Корректное значение
-    person.age = -5             # Некорректное значение (отрицательный возраст)
-    person.email = ""           # Некорректное значение (пустая строка)
-
-    print("\n=== Тестирование класса Product ===")
-    product.title = "Ноутбук"   # Корректное значение
-    product.price = 999.99      # Корректное значение
-    product.price = -100.0      # Некорректное значение (отрицательная цена)
-    product.quantity = 10       # Корректное значение
-    product.title = ""          # Некорректное значение (пустая строка)
-
-    print("\n=== Отписка от событий и повторная проверка ===")
-    # Отписываемся от событий
-    person.property_changed -= changed_handler
-    person.property_changing -= validator
-
-    person.name = "Петр"        # Изменение без уведомлений
