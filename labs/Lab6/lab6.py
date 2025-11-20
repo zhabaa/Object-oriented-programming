@@ -1,100 +1,307 @@
 import json
 import os
 from abc import ABC, abstractmethod
-from typing import Dict, List, Any, Optional
+from dataclasses import dataclass, asdict
+from typing import Dict, List, Any, Optional, Tuple, Union
 from datetime import datetime
+
+
+# region Typing
+
+@dataclass
+class CommandMetadata:
+    type: str
+    char: Optional[str] = None
+    step: Optional[int] = None
+    is_upper: Optional[bool] = None
+
+
+@dataclass
+class SerializedCommand:
+    type: str
+    char: Optional[str] = None
+    step: Optional[int] = None
+
+# endregion
 
 
 class Command(ABC):
     @abstractmethod
-    def execute(self) -> str:
+    def execute(self, context: Any) -> CommandMetadata:
         pass
 
     @abstractmethod
-    def undo(self) -> str:
+    def undo(self, context: Any, metadata: CommandMetadata) -> CommandMetadata:
         pass
 
 
-class PrintCharCommand(Command):
-    def __init__(self, char: str):
-        self.char = char
+class TextBuffer:
+    def __init__(self):
+        self._text: str = ""
+    
+    def append(self, text: str) -> None:
+        self._text += text
+    
+    def remove_last(self, count: int = 1) -> str:
+        if count <= 0 or count > len(self._text):
+            return ""
 
-    def execute(self) -> str:
-        return self.char
+        removed = self._text[-count:]
+        self._text = self._text[:-count]
 
-    def undo(self) -> str:
-        return "[BACKSPACE]"
+        return removed
+    
+    def get_text(self) -> str:
+        return self._text
+    
+    def clear(self) -> None:
+        self._text = ""
+
+
+# region mediaplayer
+
+
+class MediaPlayer:
+    def __init__(self):
+        self._volume: int = 50
+        self._is_playing: bool = False
+    
+    @property
+    def volume(self) -> int:
+        return self._volume
+    
+    @volume.setter
+    def volume(self, value: int) -> None:
+        self._volume = max(0, min(100, value))
+    
+    @property
+    def is_playing(self) -> bool:
+        return self._is_playing
+    
+    @is_playing.setter
+    def is_playing(self, state: bool) -> None:
+        self._is_playing = state
+    
+    def volume_up(self, step: int = 10) -> int:
+        self.volume = self.volume + step
+        return self.volume
+    
+    def volume_down(self, step: int = 10) -> int:
+        self.volume = self.volume - step
+        return self.volume
+
+
+class MediaPlayCommand(Command):
+    def execute(self, context: Any) -> CommandMetadata:
+        media_player: MediaPlayer = context.media_player
+        media_player.is_playing = True
+        return CommandMetadata(type="media_on")
+
+    def undo(self, context: Any, metadata: CommandMetadata) -> CommandMetadata:
+        media_player: MediaPlayer = context.media_player
+        media_player.is_playing = False
+        return CommandMetadata(type="media_off")
 
 
 class VolumeUpCommand(Command):
     def __init__(self, step: int = 10):
-        self.step = step
+        self.step: int = step
+        self._previous_volume: Optional[int] = None
 
-    def execute(self) -> str:
-        return f"volume increased +{self.step}%"
+    def execute(self, context: Any) -> CommandMetadata:
+        media_player: MediaPlayer = context.media_player
+        self._previous_volume = media_player.volume
+        new_volume = media_player.volume_up(self.step)
+        return CommandMetadata(type="vol_up", step=new_volume)
 
-    def undo(self) -> str:
-        return f"volume decreased +{self.step}%"
+    def undo(self, context: Any, metadata: CommandMetadata) -> CommandMetadata:
+        media_player: MediaPlayer = context.media_player
+        
+        if self._previous_volume is not None:
+            media_player.volume = self._previous_volume
+        
+        return CommandMetadata(type="undo_vol_up")
 
 
 class VolumeDownCommand(Command):
     def __init__(self, step: int = 10):
-        self.step = step
+        self.step: int = step
+        self._previous_volume: Optional[int] = None
 
-    def execute(self) -> str:
-        return f"volume decreased +{self.step}%"
+    def execute(self, context: Any) -> CommandMetadata:
+        media_player: MediaPlayer = context.media_player
+        self._previous_volume = media_player.volume
+        new_volume = media_player.volume_down(self.step)
+        return CommandMetadata(type="vol_down", step=new_volume)
 
-    def undo(self) -> str:
-        return f"volume increased +{self.step}%"
+    def undo(self, context: Any, metadata: CommandMetadata) -> CommandMetadata:
+        media_player: MediaPlayer = context.media_player
+        
+        if self._previous_volume is not None:
+            media_player.volume = self._previous_volume
+        
+        return CommandMetadata(type="undo_vol_down")
 
 
-class MediaPlayerCommand(Command):
-    def __init__(self):
-        self.is_playing = False
+# endregion
 
-    def execute(self) -> str:
-        self.is_playing = True
-        return "media player launched"
 
-    def undo(self) -> str:
-        self.is_playing = False
-        return "media player closed"
+class PrintCharCommand(Command):
+    def __init__(self, char: str):
+        self.char: str = char
+
+    def execute(self, context: Any) -> CommandMetadata:
+        text_buffer: TextBuffer = context.text_buffer
+        case_handler: CaseHandler = context.case_handler
+        
+        actual_char = self.char
+
+        if self.char.isalpha():
+            if case_handler.is_upper:
+                actual_char = self.char.upper() 
+            else:
+                actual_char = self.char.lower()
+        
+        text_buffer.append(actual_char)
+
+        return CommandMetadata(type="print", char=actual_char)
+
+    def undo(self, context: Any, metadata: CommandMetadata) -> CommandMetadata:
+        text_buffer: TextBuffer = context.text_buffer
+
+        if metadata.char:
+            text_buffer.remove_last(len(metadata.char))
+
+        return CommandMetadata(type="undo_print")
+
+
+class BackspaceCommand(Command):
+    def execute(self, context: Any) -> CommandMetadata:
+        text_buffer: TextBuffer = context.text_buffer
+        removed = text_buffer.remove_last()
+        return CommandMetadata(type="backspace", char=removed)
+
+    def undo(self, context: Any, metadata: CommandMetadata) -> CommandMetadata:
+        text_buffer: TextBuffer = context.text_buffer
+        
+        if metadata.char:
+            text_buffer.append(metadata.char)
+        
+        return CommandMetadata(type="undo_backspace")
 
 
 class ToggleCaseCommand(Command):
+    def execute(self, context: Any) -> CommandMetadata:
+        case_handler: CaseHandler = context.case_handler
+        case_handler.toggle_case()
+        return CommandMetadata(type="toggle", is_upper=case_handler.is_upper)
+
+    def undo(self, context: Any, metadata: CommandMetadata) -> CommandMetadata:
+        case_handler: CaseHandler = context.case_handler
+        case_handler.toggle_case()
+        return CommandMetadata(type="undo_toggle", is_upper=case_handler.is_upper)
+
+
+class CaseHandler:
     def __init__(self):
-        self.is_upper = False
+        self._is_upper: bool = False
+    
+    @property
+    def is_upper(self) -> bool:
+        return self._is_upper
+    
+    def toggle_case(self) -> None:
+        self._is_upper = not self._is_upper
+    
+    def set_upper_case(self, is_upper: bool) -> None:
+        self._is_upper = is_upper
 
-    def execute(self) -> str:
-        self.is_upper = not self.is_upper
-        mode = "UPPERCASE" if self.is_upper else "lowercase"
-        return f"input mode switched to {mode}"
 
-    def undo(self) -> str:
-        self.is_upper = not self.is_upper
-        mode = "UPPERCASE" if self.is_upper else "lowercase"
-        return f"input mode switched to {mode}"
+class CommandHistory:
+    def __init__(self):
+        self._history: List[Tuple[Command, CommandMetadata]] = []
+        self._redo_stack: List[Tuple[Command, CommandMetadata]] = []
+    
+    def push(self, command: Command, metadata: CommandMetadata) -> None:
+        self._history.append((command, metadata))
+        self._redo_stack.clear()
+    
+    def pop(self) -> Optional[Tuple[Command, CommandMetadata]]:
+        if not self._history:
+            return None
+        return self._history.pop()
+    
+    def push_redo(self, command: Command, metadata: CommandMetadata) -> None:
+        self._redo_stack.append((command, metadata))
+    
+    def pop_redo(self) -> Optional[Tuple[Command, CommandMetadata]]:
+        if not self._redo_stack:
+            return None
+        return self._redo_stack.pop()
+    
+    def clear(self) -> None:
+        self._history.clear()
+        self._redo_stack.clear()
+
+
+class CommandSerializer:
+    _registry: Dict[str, type] = {
+        "PrintCharCommand": PrintCharCommand,
+        "BackspaceCommand": BackspaceCommand,
+        "VolumeUpCommand": VolumeUpCommand,
+        "VolumeDownCommand": VolumeDownCommand,
+        "MediaPlayCommand": MediaPlayCommand,
+        "ToggleCaseCommand": ToggleCaseCommand,
+    }
+
+    @staticmethod
+    def serialize(cmd: Command) -> SerializedCommand:
+        if isinstance(cmd, PrintCharCommand):
+            return SerializedCommand(type="PrintCharCommand", char=cmd.char)
+        
+        elif isinstance(cmd, (VolumeUpCommand, VolumeDownCommand)):
+            return SerializedCommand(type=type(cmd).__name__, step=cmd.step)
+        
+        else:
+            return SerializedCommand(type=type(cmd).__name__)
+
+    @staticmethod
+    def deserialize(data: SerializedCommand) -> Command:
+        cls = CommandSerializer._registry.get(data.type)
+        
+        if cls is None:
+            raise ValueError(f"Unknown command type: {data.type}")
+        
+        if data.type == "PrintCharCommand":
+            return cls(data.char)
+        
+        elif data.type in ["VolumeUpCommand", "VolumeDownCommand"]:
+            return cls(data.step or 10)
+        
+        else:
+            return cls()
 
 
 class KeyboardMemento:
-    def __init__(self, key_bindings: Dict[str, Dict[str, Any]]):
-        self.key_bindings = key_bindings
+    def __init__(self, bindings: Dict[str, SerializedCommand]):
+        self.bindings = bindings
         self.timestamp = datetime.now()
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "key_bindings": self.key_bindings,
-            "timestamp": self.timestamp.isoformat(),
+            "bindings": {k: asdict(v) for k, v in self.bindings.items()},
+            "timestamp": self.timestamp.isoformat()
         }
 
     @staticmethod
     def from_dict(data: Dict[str, Any]) -> "KeyboardMemento":
-        memento = KeyboardMemento(data["key_bindings"])
+        bindings = {k: SerializedCommand(**v) for k, v in data["bindings"].items()}
+        memento = KeyboardMemento(bindings)
         memento.timestamp = datetime.fromisoformat(data["timestamp"])
         return memento
 
 
-class KeyboardStateSaver:
+class KeyboardStateManager:
     def __init__(self, filename: str = "keyboard_state.json"):
         self.filename = filename
 
@@ -102,166 +309,116 @@ class KeyboardStateSaver:
         try:
             with open(self.filename, "w", encoding="utf-8") as f:
                 json.dump(memento.to_dict(), f, indent=2, ensure_ascii=False)
-
             return True
-
-        except Exception as e:
-            print(f"Error saving state: {e}")
+        except Exception:
             return False
 
     def load(self) -> Optional[KeyboardMemento]:
+        if not os.path.exists(self.filename):
+            return None
         try:
-            if not os.path.exists(self.filename):
-                return None
-
             with open(self.filename, "r", encoding="utf-8") as f:
                 data = json.load(f)
-
             return KeyboardMemento.from_dict(data)
-
-        except Exception as e:
-            print(f"Error loading state: {e}")
+        except Exception:
             return None
+
+
+class Context:
+    def __init__(self):
+        self.text_buffer = TextBuffer()
+        self.media_player = MediaPlayer()
+        self.case_handler = CaseHandler()
 
 
 class VirtualKeyboard:
     def __init__(self):
-        self.key_bindings: Dict[str, Command] = dict()
-        self.history: List[Command] = list()
-        self.redo_stack: List[Command] = list()
-        self.output_text = str()
-        self.state_saver = KeyboardStateSaver()
-
+        self.context = Context()
+        self.key_bindings: Dict[str, Command] = {}
+        self.history = CommandHistory()
+        self.state_manager = KeyboardStateManager()
+        
         self.setup_default_bindings()
         self.load_state()
 
-    def setup_default_bindings(self):
-        for char in "abcdefghijklmnopqrstuvwxyz":
-            self.bind_key(char, PrintCharCommand(char))
-
-        for digit in "0123456789":
-            self.bind_key(digit, PrintCharCommand(digit))
-
-        self.bind_key("ctrl++", VolumeUpCommand())
-        self.bind_key("ctrl+-", VolumeDownCommand())
-        self.bind_key("ctrl+p", MediaPlayerCommand())
+    def setup_default_bindings(self) -> None:
+        # Letters
+        for ch in "abcdefghijklmnopqrstuvwxyz":
+            self.bind_key(ch, PrintCharCommand(ch))
+        
+        # Digits
+        for d in "0123456789":
+            self.bind_key(d, PrintCharCommand(d))
+        
+        # Special keys
+        self.bind_key("space", PrintCharCommand(" "))
+        self.bind_key("backspace", BackspaceCommand())
         self.bind_key("caps", ToggleCaseCommand())
+        self.bind_key("volume_up", VolumeUpCommand())
+        self.bind_key("volume_down", VolumeDownCommand())
+        self.bind_key("media_play", MediaPlayCommand())
 
-    def bind_key(self, key_combination: str, command: Command):
-        self.key_bindings[key_combination] = command
+    def bind_key(self, key: str, command: Command) -> None:
+        self.key_bindings[key] = command
 
-    def press_key(self, key_combination: str) -> str:
-        if key_combination not in self.key_bindings:
-            return f"Unknown key: {key_combination}"
-
-        command = self.key_bindings[key_combination]
-        result = command.execute()
-
-        if isinstance(command, PrintCharCommand):
-            self.output_text += result
-
-        elif result == "[BACKSPACE]":
-            self.output_text = self.output_text[:-1]
-
-        self.history.append(command)
-        self.redo_stack.clear()
-
-        return result
+    def press_key(self, key: str) -> str:
+        if key not in self.key_bindings:
+            return f"Unknown key: {key}"
+        
+        command = self.key_bindings[key]
+        metadata = command.execute(self.context)
+        self.history.push(command, metadata)
+        
+        return f"Executed: {metadata.type}"
 
     def undo(self) -> str:
-        if not self.history:
+        item = self.history.pop()
+        if item is None:
             return "Nothing to undo"
-
-        command = self.history.pop()
-        result = command.undo()
-
-        if result == "[BACKSPACE]":
-            self.output_text = self.output_text[:-1]
-
-        self.redo_stack.append(command)
-        return result
+        
+        command, metadata = item
+        undo_metadata = command.undo(self.context, metadata)
+        self.history.push_redo(command, metadata)
+        
+        return f"Undone: {undo_metadata.type}"
 
     def redo(self) -> str:
-        if not self.redo_stack:
+        item = self.history.pop_redo()
+        if item is None:
             return "Nothing to redo"
+        
+        command, old_metadata = item
+        new_metadata = command.execute(self.context)
+        self.history.push(command, new_metadata)
+        
+        return f"Redone: {new_metadata.type}"
 
-        command = self.redo_stack.pop()
-        result = command.execute()
+    def save_state(self) -> bool:
+        serialized_bindings = {
+            key: CommandSerializer.serialize(command) 
+            for key, command in self.key_bindings.items()
+        }
+        memento = KeyboardMemento(serialized_bindings)
+        return self.state_manager.save(memento)
 
-        if isinstance(command, PrintCharCommand):
-            self.output_text += result
+    def load_state(self) -> bool:
+        memento = self.state_manager.load()
+        if memento is None:
+            return False
+        
+        try:
+            for key, cmd_data in memento.bindings.items():
+                self.key_bindings[key] = CommandSerializer.deserialize(cmd_data)
+            return True
+        except Exception:
+            return False
 
-        self.history.append(command)
-        return result
+    def get_text(self) -> str:
+        return self.context.text_buffer.get_text()
 
-    def save_state(self):
-        key_bindings_data = {}
+    def get_status(self) -> str:
+        return (f"TEXT: {self.get_text()}\n"
+                f"CAPS: {'ON' if self.context.case_handler.is_upper else 'OFF'}\n"
+                f"VOLUME: {self.context.media_player.volume}\n"
+                f"MEDIA: {'PLAYING' if self.context.media_player.is_playing else 'STOPPED'}")
 
-        for key, command in self.key_bindings.items():
-            match command:
-                case PrintCharCommand():
-                    key_bindings_data[key] = {
-                        "type": "PrintCharCommand",
-                        "char": command.char,
-                    }
-
-                case VolumeUpCommand():
-                    key_bindings_data[key] = {
-                        "type": "VolumeUpCommand",
-                        "step": command.step,
-                    }
-
-                case VolumeDownCommand():
-                    key_bindings_data[key] = {
-                        "type": "VolumeDownCommand",
-                        "step": command.step,
-                    }
-
-                case MediaPlayerCommand():
-                    key_bindings_data[key] = {"type": "MediaPlayerCommand"}
-
-                case ToggleCaseCommand():
-                    key_bindings_data[key] = {"type": "ToggleCaseCommand"}
-
-                case _:
-                    key_bindings_data[key] = {
-                        "type": "UnknownCommand",
-                        "repr": repr(command),
-                    }
-
-            memento = KeyboardMemento(key_bindings_data)
-            self.state_saver.save(memento)
-            return "State saved successfully"
-
-    def load_state(self):
-        memento = self.state_saver.load()
-        if memento:
-            for key, command_data in memento.key_bindings.items():
-                cmd_type = command_data.get("type")
-
-                match cmd_type:
-                    case "PrintCharCommand":
-                        self.key_bindings[key] = PrintCharCommand(command_data["char"])
-
-                    case "VolumeUpCommand":
-                        self.key_bindings[key] = VolumeUpCommand(command_data.get("step", 10))
-
-                    case "VolumeDownCommand":
-                        self.key_bindings[key] = VolumeDownCommand(command_data.get("step", 10))
-
-                    case "MediaPlayerCommand":
-                        self.key_bindings[key] = MediaPlayerCommand()
-
-                    case "ToggleCaseCommand":
-                        self.key_bindings[key] = ToggleCaseCommand()
-
-                    case _:
-                        print(f"Warning: Unknown command type '{cmd_type}' for key '{key}'")
-
-    def get_output(self) -> str:
-        return self.output_text
-
-    def display_status(self):
-        print(f"Current text: '{self.output_text}'")
-        print(f"History length: {len(self.history)}, Redo stack: {len(self.redo_stack)}")
-        print("Key bindings:", list(self.key_bindings.keys()))
