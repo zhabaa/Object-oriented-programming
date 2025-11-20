@@ -9,12 +9,12 @@ T = TypeVar('T')
 
 @dataclass(order=True)
 class User:
-    name: str = field(compare=False)
-    login: str = field(compare=False)
-    password: str = field(compare=False, repr=False)
-    id: Optional[int] = field(default=None, compare=True)
-    email: Optional[str] = field(default=None, compare=False)
-    address: Optional[str] = field(default=None, compare=False)
+    name: str =                 field(compare=False)
+    login: str =                field(compare=False)
+    password: str =             field(compare=False, repr=False)
+    id: Optional[int] =         field(default=None, compare=True)
+    email: Optional[str] =      field(default=None, compare=False)
+    address: Optional[str] =    field(default=None, compare=False)
 
 
 #region abc classes
@@ -191,10 +191,9 @@ class AuthService(IAuthService):
                         print(f"The user is automatically logged: {user.name}")
         
             except (json.JSONDecodeError, KeyError):
-                # os.remove(self.auth_file) хз удадение так себе
-                raise Exception("File may be corrupted, please check")
+                os.remove(self.auth_file)
 
-    def _save_auth_session(self) -> None:
+    def _save_auth_session(self, delete=False) -> None:
         if self._current_user:
             auth_data = {'user_id': self._current_user.id}
             
@@ -210,7 +209,8 @@ class AuthService(IAuthService):
         if user and user.password == password:
             self._current_user = user
             self._save_auth_session()
-            print(f"Успешная авторизация: {user.name}")
+            print(f"Successful auth: {user.name}")
+
             return True
 
         else:
@@ -221,7 +221,7 @@ class AuthService(IAuthService):
         if self._current_user:
             print(f"User logged out: {self._current_user.name}")
             self._current_user = None
-            self._save_auth_session()
+            self._save_auth_session(delete=True)
         else:
             print("No authorized user")
     
