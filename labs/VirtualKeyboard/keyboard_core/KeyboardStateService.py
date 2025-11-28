@@ -8,8 +8,6 @@ from serialization import (
 
 
 class KeyboardStateService:
-    """Сохранение и восстановление состояния клавиатуры"""
-
     def __init__(self, key_binding_manager: KeyBindingManager, 
                  plugin_manager: PluginManager):
         self.key_binding_manager = key_binding_manager

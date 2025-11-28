@@ -4,8 +4,6 @@ from commands import Command
 
 
 class KeyBindingManager:
-    """Управление привязками клавиш"""
-
     def __init__(self):
         self._bindings: Dict[str, Command] = {}
 

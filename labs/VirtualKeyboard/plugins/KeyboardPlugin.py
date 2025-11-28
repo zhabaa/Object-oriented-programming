@@ -6,8 +6,6 @@ if TYPE_CHECKING:
 
 
 class KeyboardPlugin(ABC):
-    """Базовый класс для всех плагинов клавиатуры"""
-
     @abstractmethod
     def get_name(self) -> str:
         pass

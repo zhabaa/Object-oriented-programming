@@ -5,8 +5,6 @@ from core import CommandMetadata, CommandHistory, ExtensibleContext
 
 
 class KeyboardCommandInvoker:
-    """Выполнение команд и управление историей"""
-
     def __init__(self):
         self.history = CommandHistory()
 

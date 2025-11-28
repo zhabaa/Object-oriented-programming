@@ -3,8 +3,6 @@ from interfaces import IContext
 
 
 class ExtensibleContext(IContext):
-    """Расширяемый контекст для хранения компонентов"""
-
     def __init__(self):
         self._components: Dict[str, Any] = {}
 

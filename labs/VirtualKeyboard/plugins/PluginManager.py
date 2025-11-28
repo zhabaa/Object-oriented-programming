@@ -8,15 +8,12 @@ if TYPE_CHECKING:
 
 
 class PluginManager:
-    """Управление плагинами клавиатуры"""
-
     def __init__(self):
         self._plugins: Dict[str, KeyboardPlugin] = {}
         self._component_registries: Dict[str, Any] = {}
         self._command_registries: Dict[str, Type[Command]] = {}
 
     def register_plugin(self, plugin: KeyboardPlugin) -> None:
-        """Регистрация плагина"""
         self._plugins[plugin.get_name()] = plugin
 
     def unregister_plugin(self, plugin_name: str) -> None:

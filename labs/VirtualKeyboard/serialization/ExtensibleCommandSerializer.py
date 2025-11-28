@@ -9,8 +9,6 @@ from core.Typing import SerializedCommand
 
 
 class ExtensibleCommandSerializer:
-    """Расширяемый сериализатор команд"""
-
     def __init__(self, plugin_manager: PluginManager):
         self.plugin_manager = plugin_manager
 

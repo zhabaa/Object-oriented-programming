@@ -1,9 +1,7 @@
 from core import ExtensibleContext
 from typing import List, Callable
 
-class KeyboardStatusProvider:
-    """Предоставление статуса клавиатуры"""
-    
+class KeyboardStatusProvider:    
     def __init__(self, context: ExtensibleContext):
         self.context = context
         self._status_providers: List[Callable[[], str]] = []

@@ -112,7 +112,6 @@ class InteractiveDemo:
         self.running = True
 
     def print_menu(self):
-        """Показывает меню доступных действий"""
         print(
             f"\n{'=' * 50}\n"
             f"🎮 ИНТЕРАКТИВНАЯ ДЕМОНСТРАЦИЯ VIRTUALKEYBOARD\n"
@@ -131,12 +130,10 @@ class InteractiveDemo:
         )
 
     def show_status(self):
-        """Показывает текущий статус системы"""
         print("\nТЕКУЩИЙ СТАТУС:")
         print(self.keyboard.get_status())
 
     def handle_text_input(self):
-        """Обрабатывает ввод текста"""
         text = input("Введите текст для имитации набора: ")
 
         for char in text:
@@ -149,12 +146,10 @@ class InteractiveDemo:
         print(f"Текст добавлен: '{self.keyboard.get_text()}'")
 
     def handle_special_keys(self):
-        """Обрабатывает специальные клавиши"""
-
         print("\nСпециальные клавиши:\n1. Space\n2. Backspace\n3. Caps Lock")
 
         choice = input("Выберите клавишу (1-3): ")
-        
+
         match choice:
             case "1":
                 self.keyboard.press_key("space")
@@ -167,12 +162,11 @@ class InteractiveDemo:
             case "3":
                 result = self.keyboard.press_key("caps")
                 print("Caps Lock переключен")
-            
+
             case _:
                 print("Неверный выбор")
 
     def handle_media_control(self):
-        """Обрабатывает управление медиа"""
         print("\nУправление яркостью:\n1. Brightness Up\n2. Brightness Down")
 
         choice = input("Выберите действие (1-3): ")
@@ -194,7 +188,6 @@ class InteractiveDemo:
                 print("Неверный выбор")
 
     def handle_brightness_control(self):
-        """Обрабатывает управление яркостью"""
         print("\nУправление медиа:\n1. Volume Up\n2. Volume Down\n3. Play/Pause")
 
         choice = input("Выберите действие (1-2): ")
@@ -212,7 +205,6 @@ class InteractiveDemo:
                 print("Неверный выбор")
 
     def run(self):
-        """Запускает интерактивную демонстрацию"""
         print("Добро пожаловать в интерактивную демонстрацию VirtualKeyboard!")
         print("Используйте меню для взаимодействия с системой.")
 

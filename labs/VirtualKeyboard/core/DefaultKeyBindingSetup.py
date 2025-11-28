@@ -13,8 +13,6 @@ from plugins import PluginManager
 
 
 class DefaultKeyBindingSetup:
-    """Настройка привязок клавиш по умолчанию"""
-
     @staticmethod
     def setup(binding_manager: KeyBindingManager, 
               plugin_manager: PluginManager) -> None:
