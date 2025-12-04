@@ -36,6 +36,8 @@ class StatusProvider:
     
     def get_status(self) -> str:
         status_lines = []
+        
         for provider in self._status_providers:
             status_lines.append(provider())
+        
         return "\n".join(status_lines)

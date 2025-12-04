@@ -16,6 +16,7 @@ class CommandHistory:
     def pop(self) -> Optional[Tuple[Command, CommandMetadata]]:
         if not self._history:
             return None
+        
         return self._history.pop()
 
     def push_redo(self, command: Command, metadata: CommandMetadata) -> None:
@@ -24,6 +25,7 @@ class CommandHistory:
     def pop_redo(self) -> Optional[Tuple[Command, CommandMetadata]]:
         if not self._redo_stack:
             return None
+        
         return self._redo_stack.pop()
 
     def clear(self) -> None:

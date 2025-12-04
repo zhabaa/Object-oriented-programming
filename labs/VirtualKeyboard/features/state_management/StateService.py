@@ -5,7 +5,7 @@ from features.plugins import PluginManager
 
 class StateService:
     def __init__(self, key_binding_manager: KeyBindingManager, 
-                 plugin_manager: PluginManager):
+                 plugin_manager: PluginManager) -> None:
         self.key_binding_manager = key_binding_manager
         self.plugin_manager = plugin_manager
         self.state_manager = KeyboardStateManager()
@@ -17,6 +17,7 @@ class StateService:
             for key, command in self.key_binding_manager.get_all_bindings().items()
         }
         memento = KeyboardMemento(serialized_bindings)
+        
         return self.state_manager.save(memento)
 
     def load_state(self) -> bool:

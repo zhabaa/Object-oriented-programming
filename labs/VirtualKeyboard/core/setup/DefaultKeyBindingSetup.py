@@ -13,9 +13,9 @@ from features import KeyBindingManager, PluginManager
 
 class DefaultKeyBindingSetup:
     @staticmethod
-    def setup(
-        binding_manager: KeyBindingManager, plugin_manager: PluginManager
-    ) -> None:
+    def setup(binding_manager: KeyBindingManager, 
+              plugin_manager: PluginManager) -> None:
+
         plugin_manager.register_command_type("PrintCharCommand", PrintCharCommand)
         plugin_manager.register_command_type("BackspaceCommand", BackspaceCommand)
         plugin_manager.register_command_type("ToggleCaseCommand", ToggleCaseCommand)
