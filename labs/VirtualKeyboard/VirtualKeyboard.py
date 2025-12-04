@@ -1,27 +1,26 @@
-from typing import List
+from typing import List, Optional
 
-from core import DefaultComponentSetup, DefaultKeyBindingSetup, ExtensibleContext
-from plugins import KeyboardPlugin, PluginManager
-from keyboard_core import (
-    KeyBindingManager,
-    KeyboardCommandInvoker,
-    KeyboardStateService,
-    KeyboardStatusProvider,
-)
+from core.infrastructure.context import ExtensibleContext
+from core.setup import DefaultComponentSetup, DefaultKeyBindingSetup
+from features.keybindings import KeyBindingManager
+from features.command_execution import KeyboardCommandInvoker
+from features.state_management import StateService
+from features.status_display.StatusProvider import StatusProvider
+from features.plugins import PluginManager, KeyboardPlugin
 
 
 class VirtualKeyboard:
     """Координирует работу всех компонентов клавиатуры с поддержкой плагинов"""
 
-    def __init__(self, plugins: List[KeyboardPlugin] = None):
+    def __init__(self, plugins: Optional[List[KeyboardPlugin]] = None):
         self.context = ExtensibleContext()
         self.plugin_manager = PluginManager()
         self.key_binding_manager = KeyBindingManager()
         self.command_invoker = KeyboardCommandInvoker()
-        self.state_service = KeyboardStateService(
+        self.state_service = StateService(
             self.key_binding_manager, self.plugin_manager
         )
-        self.status_provider = KeyboardStatusProvider(self.context)
+        self.status_provider = StatusProvider(self.context)
 
         # Настройка по умолчанию
         DefaultComponentSetup.setup(self.context)
@@ -32,19 +31,24 @@ class VirtualKeyboard:
             for plugin in plugins:
                 self.plugin_manager.register_plugin(plugin)
 
-        self.plugin_manager.setup_plugins(self)
-        self.state_service.load_state()
+        self.plugin_manager.setup_plugins(
+            self.context,
+            self.key_binding_manager,
+            self.status_provider
+        )
+        
+        self.load_state()
 
     def register_plugin(self, plugin: KeyboardPlugin) -> None:
         """Динамическая регистрация плагина"""
         self.plugin_manager.register_plugin(plugin)
-        plugin.setup(self)
+        plugin.setup(self.context, self.key_binding_manager, self.status_provider)
 
     def unregister_plugin(self, plugin_name: str) -> None:
         """Динамическое удаление плагина"""
-        plugin = self.plugin_manager._plugins.get(plugin_name)
+        plugin = self.plugin_manager.get_plugin(plugin_name)
         if plugin:
-            plugin.teardown(self)
+            plugin.teardown(self.context, self.key_binding_manager, self.status_provider)
             self.plugin_manager.unregister_plugin(plugin_name)
 
     def press_key(self, key: str) -> str:

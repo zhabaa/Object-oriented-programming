@@ -1,12 +1,11 @@
-# region outer plugin
-from commands import Command
-from core import ExtensibleContext
-from core.Typing import CommandMetadata
-from plugins import KeyboardPlugin
-
 from VirtualKeyboard import VirtualKeyboard
+from core.infrastructure.context import ExtensibleContext
+from core.commands.commands import Command
+from core.typing import CommandMetadata
+from features.plugins.KeyboardPlugin import KeyboardPlugin
 
 
+# region Brightness Plugin
 class BrightnessController:
     def __init__(self):
         self._brightness: int = 50
@@ -68,41 +67,34 @@ class BrightnessPlugin(KeyboardPlugin):
     def get_name(self) -> str:
         return "brightness"
 
-    def setup(self, keyboard: VirtualKeyboard) -> None:
+    def setup(self, context: ExtensibleContext, binding_manager, status_provider) -> None:
         # Регистрация компонента
-        keyboard.context.register_component("brightness", BrightnessController())
+        context.register_component("brightness", BrightnessController())
 
-        # Регистрация команд
-        keyboard.plugin_manager.register_command_type(
-            "BrightnessUpCommand", BrightnessUpCommand
-        )
-        keyboard.plugin_manager.register_command_type(
-            "BrightnessDownCommand", BrightnessDownCommand
-        )
+        # Регистрация команд в менеджере плагинов
+        # (предполагается, что binding_manager или plugin_manager имеет метод register_command_type)
+        if hasattr(binding_manager, 'register_command_type'):
+            binding_manager.register_command_type("BrightnessUpCommand", BrightnessUpCommand)
+            binding_manager.register_command_type("BrightnessDownCommand", BrightnessDownCommand)
 
         # Привязка клавиш
-        keyboard.key_binding_manager.bind_key("brightness_up", BrightnessUpCommand())
-        keyboard.key_binding_manager.bind_key(
-            "brightness_down", BrightnessDownCommand()
-        )
+        binding_manager.bind_key("brightness_up", BrightnessUpCommand())
+        binding_manager.bind_key("brightness_down", BrightnessDownCommand())
 
         # Регистрация провайдера статуса
         def brightness_status_provider():
-            brightness_controller = keyboard.context.get_component("brightness")
+            brightness_controller = context.get_component("brightness")
             return (
-                f"BRIGHTNESS: {brightness_controller.brightness}"
+                f"BRIGHTNESS: {brightness_controller.brightness}%"
                 if brightness_controller
                 else "BRIGHTNESS: N/A"
             )
 
-        keyboard.status_provider.register_status_provider(brightness_status_provider)
+        status_provider.register_status_provider(brightness_status_provider)
 
-    def teardown(self, keyboard: VirtualKeyboard) -> None:
+    def teardown(self, context: ExtensibleContext, binding_manager, status_provider) -> None:
         # Очистка при удалении плагина
-        keyboard.context.remove_component("brightness")
-        # Note: В реальной системе нужно также удалить привязки клавиш и провайдеры статуса
-
-
+        context.remove_component("brightness")
 # endregion
 
 
@@ -130,82 +122,65 @@ class InteractiveDemo:
         )
 
     def show_status(self):
-        print("\nТЕКУЩИЙ СТАТУС:")
+        print("\n📊 ТЕКУЩИЙ СТАТУС:")
         print(self.keyboard.get_status())
 
     def handle_text_input(self):
         text = input("Введите текст для имитации набора: ")
-
         for char in text:
             if char == " ":
                 self.keyboard.press_key("space")
-
             else:
                 self.keyboard.press_key(char)
-
-        print(f"Текст добавлен: '{self.keyboard.get_text()}'")
+        print(f"✅ Текст добавлен: '{self.keyboard.get_text()}'")
 
     def handle_special_keys(self):
-        print("\nСпециальные клавиши:\n1. Space\n2. Backspace\n3. Caps Lock")
-
+        print(f"\nСпециальные клавиши:\n1. Space\n2. Backspace\n3. Caps Lock")
         choice = input("Выберите клавишу (1-3): ")
-
         match choice:
             case "1":
                 self.keyboard.press_key("space")
-                print("Space добавлен")
-
+                print("✅ Space добавлен")
             case "2":
                 result = self.keyboard.press_key("backspace")
-                print(f"{result}")
-
+                print(f"✅ {result}")
             case "3":
-                result = self.keyboard.press_key("caps")
-                print("Caps Lock переключен")
-
+                self.keyboard.press_key("caps")
+                print("✅ Caps Lock переключен")
             case _:
-                print("Неверный выбор")
+                print("❌ Неверный выбор")
 
     def handle_media_control(self):
-        print("\nУправление яркостью:\n1. Brightness Up\n2. Brightness Down")
-
+        print(f"\nУправление медиа:\n1. Volume Up\n2. Volume Down\n3. Play/Pause")
         choice = input("Выберите действие (1-3): ")
-
         match choice:
             case "1":
                 self.keyboard.press_key("volume_up")
-                print("Громкость увеличена")
-
+                print("✅ Громкость увеличена")
             case "2":
                 self.keyboard.press_key("volume_down")
-                print("Громкость уменьшена")
-
+                print("✅ Громкость уменьшена")
             case "3":
                 self.keyboard.press_key("media_play")
-                print("Состояние воспроизведения изменено")
-
+                print("✅ Состояние воспроизведения изменено")
             case _:
-                print("Неверный выбор")
+                print("❌ Неверный выбор")
 
     def handle_brightness_control(self):
-        print("\nУправление медиа:\n1. Volume Up\n2. Volume Down\n3. Play/Pause")
-
+        print(f"\nУправление яркостью:\n1. Brightness Up\n2. Brightness Down")
         choice = input("Выберите действие (1-2): ")
-
         match choice:
             case "1":
                 self.keyboard.press_key("brightness_up")
-                print("Яркость увеличена")
-
+                print("✅ Яркость увеличена")
             case "2":
                 self.keyboard.press_key("brightness_down")
-                print("Яркость уменьшена")
-
+                print("✅ Яркость уменьшена")
             case _:
-                print("Неверный выбор")
+                print("❌ Неверный выбор")
 
     def run(self):
-        print("Добро пожаловать в интерактивную демонстрацию VirtualKeyboard!")
+        print("🚀 Добро пожаловать в интерактивную демонстрацию VirtualKeyboard!")
         print("Используйте меню для взаимодействия с системой.")
 
         while self.running:
@@ -216,48 +191,37 @@ class InteractiveDemo:
                 match choice:
                     case "1":
                         self.handle_text_input()
-
                     case "2":
                         self.handle_special_keys()
-
                     case "3":
                         self.handle_media_control()
-
                     case "4":
                         self.handle_brightness_control()
-
                     case "5":
                         result = self.keyboard.undo()
-                        print(f"{result}")
-
+                        print(f"✅ {result}")
                     case "6":
                         result = self.keyboard.redo()
-                        print(f"{result}")
-
+                        print(f"✅ {result}")
                     case "7":
                         self.show_status()
-
                     case "8":
                         if self.keyboard.save_state():
-                            print("Состояние сохранено")
+                            print("✅ Состояние сохранено")
                         else:
-                            print("Ошибка сохранения состояния")
-
+                            print("❌ Ошибка сохранения состояния")
                     case "9":
                         if self.keyboard.load_state():
-                            print("Состояние загружено")
+                            print("✅ Состояние загружено")
                         else:
-                            print("Ошибка загрузки состояния")
-
+                            print("❌ Ошибка загрузки состояния")
                     case "0":
                         self.running = False
-                        print("До свидания!")
-
+                        print("👋 До свидания!")
                     case _:
-                        print("Неверный выбор, попробуйте снова")
-
+                        print("❌ Неверный выбор, попробуйте снова")
             except Exception as e:
-                print(f"Произошла ошибка: {e}")
+                print(f"❌ Произошла ошибка: {e}")
 
 
 if __name__ == "__main__":
